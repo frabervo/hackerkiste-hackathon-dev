@@ -1,9 +1,9 @@
-name: 'Stage 1 AKS Cluster'
-on: [workflow_dispatch]
+name: 'Stage 1 AKS Cluster'       # The name of the pipeline  
+on: [workflow_dispatch]           # How the pipeline should start: here manually
 
 jobs:
-  terraform:
-    name: 'Terraform'
+  terraform:                      # the job_id
+    name: 'Terraform'             # 
     env:
       ARM_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
@@ -11,7 +11,7 @@ jobs:
       ARM_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
       TF_VAR_uniquename: ${{ secrets.UNIQUE_NAME }}
     runs-on: ubuntu-latest
-    environment: production
+    environment: production     # a flag whether there are more environment like development or production
 
     defaults:
       run:
@@ -22,28 +22,34 @@ jobs:
       rg: ${{ steps.tfout.outputs.rg }}
       acr_name: ${{ steps.tfout.outputs.acr_name }}
       acr_url: ${{ steps.tfout.outputs.acr_url }}
-      
+
+    # Deployment of AppService and WebApp
     steps:
     # Checkout the repository to the GitHub Actions runner
-    - name: Checkout
-      uses: actions/checkout@v2
+    - name: Checkout                  # checkout existiert momentan nicht. Wird der Branch automatisch erstellt?
+      uses: actions/checkout@v2      
 
-    - uses: hashicorp/setup-terraform@v1
+    - uses: hashicorp/setup-terraform@v1     # Terraform CLI --> Defines the built-in commands to be available on the worker from GitHub
       with:
         terraform_wrapper: false
 
-    - run: terraform init
+    - run: terraform init                 # sets up the current project environment and connects to the Azure Storage Account defined in your "stage_1_AKS_Cluster/main.tf"
+            # und installiert die Abhängigkeiten aus der Datei main.tf
     
     - name: Terraform fmt
+            # --> format your code automatically so it matches the expected syntax. 
+            # It beautyfies your code as well for better readability.
       id: fmt
       run: terraform fmt -check
-      continue-on-error: true
+      continue-on-error: true # get automatic linting and the pipeline doesn't allow properly formatted code.
 
     - name: Terraform Plan
+            # Creates a plan of the changes needed to be done on Azure to accomplish the defined settings in your Terraform code.
       id: plan
       run: terraform plan -no-color -out=terraform.tfplan
 
     - name: Terraform Apply
+            # The final step is to apply the Terraform code which will setup the defined environment on Azure.
       id: apply
       # if: github.ref == 'refs/heads/main'
       run: terraform apply -auto-approve -no-color terraform.tfplan
